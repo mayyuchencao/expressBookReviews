@@ -6,12 +6,12 @@ const regd_users = express.Router();
 
 let users = [];
 
-// Check whether username exists
+// Check if username exists
 const isValid = (username) => {
     return users.some(user => user.username === username);
 };
 
-// Check whether username and password match
+// Check if username and password match
 const authenticatedUser = (username, password) => {
     return users.some(user =>
         user.username === username &&
@@ -19,7 +19,7 @@ const authenticatedUser = (username, password) => {
     );
 };
 
-// Login
+// Task 7: Login
 regd_users.post("/login", (req, res) => {
     const username = req.body.username;
     const password = req.body.password;
@@ -30,16 +30,13 @@ regd_users.post("/login", (req, res) => {
         });
     }
 
-    if (isValid(username) && authenticatedUser(username, password)) {
-
-        // Generate JWT
+    if (authenticatedUser(username, password)) {
         const accessToken = jwt.sign(
             { username: username },
             "access",
             { expiresIn: "1h" }
         );
 
-        // Store JWT in session
         req.session.authorization = {
             accessToken: accessToken
         };
@@ -51,6 +48,55 @@ regd_users.post("/login", (req, res) => {
 
     return res.status(401).json({
         message: "Invalid username or password"
+    });
+});
+
+// Task 8: Add or modify a book review
+regd_users.put("/auth/review/:isbn", (req, res) => {
+    const isbn = req.params.isbn;
+    const review = req.query.review;
+    const username = req.user.username;
+
+    if (!books[isbn]) {
+        return res.status(404).json({
+            message: "Book not found"
+        });
+    }
+
+    if (typeof review !== "string") {
+        return res.status(400).json({
+            message: "Review is required"
+        });
+    }
+
+    books[isbn].reviews[username] = review;
+
+    return res.status(200).json({
+        message: "Review added or updated successfully"
+    });
+});
+
+// Task 9: Delete a book review
+regd_users.delete("/auth/review/:isbn", (req, res) => {
+    const isbn = req.params.isbn;
+    const username = req.user.username;
+
+    if (!books[isbn]) {
+        return res.status(404).json({
+            message: "Book not found"
+        });
+    }
+
+    if (!Object.hasOwn(books[isbn].reviews, username)) {
+        return res.status(404).json({
+            message: "Review not found"
+        });
+    }
+
+    delete books[isbn].reviews[username];
+
+    return res.status(200).json({
+        message: "Review deleted successfully"
     });
 });
 
